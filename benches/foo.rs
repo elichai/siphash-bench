@@ -79,8 +79,23 @@ mod rust {
     benches!(hash(b.as_bytes()), b);
 }
 
+mod fnv {
+    use foo::FnvHasher;
+    use std::hash::{Writer, Hasher};
+    use std::default::Default;
+
+    pub fn hash(b: &[u8]) -> u64 {
+        let mut s: FnvHasher = Default::default();
+        s.write(b);
+        s.finish()
+    }
+
+    benches!(hash(b.as_bytes()), b);
+}
+
 #[test]
 fn test_same() {
     assert_eq!(c::hash(&[1, 2, 3, 4]), rust::hash(&[1, 2, 3, 4]));
 }
+
 
