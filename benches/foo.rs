@@ -1,7 +1,7 @@
-#![feature(hash, test)]
+#![feature(sip_hash_13, test)]
 
 extern crate test;
-extern crate "siphash-bench" as foo;
+extern crate siphash_bench;
 
 macro_rules! benches {
     ($f:expr, $var:ident) => {
@@ -28,7 +28,7 @@ macro_rules! benches {
     }
 }
 
-mod c {
+mod c1_siphash24 {
     extern {
         fn siphash(out: *mut u8, input: *const u8, len: u64, k: *const u8) -> i32;
     }
@@ -48,7 +48,7 @@ mod c {
     benches!(hash(b.as_bytes()), b);
 }
 
-mod c2 {
+mod c2_siphash24 {
     extern crate libc;
     extern {
         fn siphash24(input: *const u8, sz: libc::c_ulong,
@@ -67,8 +67,29 @@ mod c2 {
     benches!(hash(b.as_bytes()), b);
 }
 
-mod rust {
-    use std::hash::{SipHasher, Writer, Hasher};
+mod cpp_siphash {
+    extern crate libc;
+
+    extern {
+        fn SipHashC(keys: *const u64,
+                    bytes: *const u8,
+                    size: u64) -> u64;
+    }
+
+    pub fn hash(b: &[u8]) -> u64 {
+        let keys = [0u64, 0u64];
+        unsafe {
+            SipHashC(keys.as_ptr(),
+                     b.as_ptr(),
+                     b.len() as libc::c_ulong)
+        }
+    }
+
+    benches!(hash(b.as_bytes()), b);
+}
+
+mod rust_siphash24 {
+    use std::hash::{SipHasher, Hasher};
 
     pub fn hash(b: &[u8]) -> u64 {
         let mut s = SipHasher::new_with_keys(0, 0);
@@ -79,13 +100,11 @@ mod rust {
     benches!(hash(b.as_bytes()), b);
 }
 
-mod fnv {
-    use foo::FnvHasher;
-    use std::hash::{Writer, Hasher};
-    use std::default::Default;
+mod rust_siphash13 {
+    use std::hash::{SipHasher13, Hasher};
 
     pub fn hash(b: &[u8]) -> u64 {
-        let mut s: FnvHasher = Default::default();
+        let mut s = SipHasher13::new_with_keys(0, 0);
         s.write(b);
         s.finish()
     }
@@ -95,7 +114,6 @@ mod fnv {
 
 #[test]
 fn test_same() {
-    assert_eq!(c::hash(&[1, 2, 3, 4]), rust::hash(&[1, 2, 3, 4]));
+    assert_eq!(c1_siphash24::hash(&[1, 2, 3, 4]),
+               rust_siphash24::hash(&[1, 2, 3, 4]));
 }
-
-
