@@ -9,5 +9,6 @@ fn main() {
         .cpp(true)
         .flag("-O3")
         .flag("-std=c++11")
+        .flag("-mavx2")
         .compile("libcppsiphash.a");
 }
