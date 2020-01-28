@@ -1,14 +1,31 @@
-extern crate gcc;
+extern crate cc;
 
 fn main() {
-    gcc::Config::new().file("siphash24.c").flag("-O3").compile("libsiphash.a");
-    gcc::Config::new().file("csiphash.c").flag("-O3").compile("libsiphash2.a");
-    gcc::Config::new()
+    let mut conf_base = cc::Build::new();
+    conf_base.flag("-O3").flag("-Wno-implicit-fallthrough");
+    // .flag("-march=native");
+
+    conf_base
+        .clone()
+        .file("siphash24.c")
+        .compile("libsiphash.a");
+    conf_base
+        .clone()
+        .file("csiphash.c")
+        .compile("libsiphash2.a");
+
+    let mut cpp_conf = conf_base;
+    cpp_conf.cpp(true).flag("-std=c++11");
+
+    cpp_conf
+        .clone()
         .file("highwayhash/highwayhash/sip_hash.cc")
         .include("highwayhash")
-        .cpp(true)
-        .flag("-O3")
-        .flag("-std=c++11")
         .flag("-mavx2")
         .compile("libcppsiphash.a");
+
+    cpp_conf
+        .file("bitcoin_siphash_wrapper.cpp")
+        .include("bitcoin/src")
+        .compile("libbitcoinsiphash.a");
 }
